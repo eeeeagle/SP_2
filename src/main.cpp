@@ -42,6 +42,7 @@ int main(int argc, char** argv)
             {
                 std::cout   << "INVALID TYPE: " << std::string(argv[2]) << std::endl
                             << "    Value must be integer";
+                exit(EXIT_FAILURE);
             }
             catch(std::out_of_range const& ex)
             {
