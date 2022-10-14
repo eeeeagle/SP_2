@@ -41,7 +41,7 @@ int main(int argc, char** argv)
             catch(std::invalid_argument const& ex)
             {
                 std::cout   << "INVALID TYPE: " << std::string(argv[2]) << std::endl
-                            << "    Value must be integer";
+                            << "    Value must be integer"              << std::endl;
                 exit(EXIT_FAILURE);
             }
             catch(std::out_of_range const& ex)
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
         if(n < 2)
             throw std::out_of_range("OUT OF RANGE: N = " + std::to_string(n));
     }
-    catch(std::invalid_argument& ex)
+    catch(std::invalid_argument const& ex)
     {
         std::cout   << ex.what()                                    << std::endl << std::endl
                     << "Use those arguments to launch program:"     << std::endl
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
                     << "    [ -MQ] Message queue"                   << std::endl << std::endl;
         exit(EXIT_FAILURE);
     }
-    catch(std::out_of_range& ex)
+    catch(std::out_of_range const& ex)
     {
         std::cout   << ex.what()                                    << std::endl << std::endl
                     << "Value must be in range:"                    << std::endl
@@ -75,13 +75,10 @@ int main(int argc, char** argv)
         exit(EXIT_FAILURE);
     }
 
-
     if (std::string(argv[1]) == "-SIG")
-        s_start(n);
+        SIG::start(n);
     else if (std::string(argv[1]) == "-UP")
-        up_start(n);
+        UP::start(n);
     else if (std::string(argv[1]) == "-MQ")
-        mq_start(n);
-
-    return 0;
+        MQ::start(n);
 }
