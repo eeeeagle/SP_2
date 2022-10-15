@@ -11,7 +11,7 @@ namespace UP
 {
     void on_exit()
     {
-        std::cout << "KASASGKSGKSAGSAGKSK SHIIIIIIIIIIT" << std::endl;
+        std::cout << "sample text" << std::endl;
     }
 
     void print_stat(const std::pair<bool, int>& result, const double& runtime)
