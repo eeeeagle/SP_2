@@ -5,83 +5,110 @@
 #include <chrono>
 #include <unistd.h>
 #include <wait.h>
+#define SLEEP_TIME 1
 
 namespace UP
 {
+    void on_exit()
+    {
+        std::cout << "KASASGKSGKSAGSAGKSK SHIIIIIIIIIIT" << std::endl;
+    }
+
+    void print_stat(const std::pair<bool, int>& result, const double& runtime)
+    {
+        std::cout << std::endl;
+        std::cout << "Value was" << (result.first ? " " : "n't ") << "guessed" << std::endl;
+        std::cout << "Number of attempts: " << result.second << std::endl;
+        std::cout << "Game time: " << runtime << " seconds" << std::endl;
+        std::cout << "__________________________________" << std::endl << std::endl;
+    }
+
     void riddler(int pipe_fd[], const int n)
     {
         srandom(time(nullptr));
         int value = 1 + (int) random() % n;
-        sleep(2);
+        sleep(SLEEP_TIME);
         std::cout << "Guessed value: " << value << std::endl;
 
         int x = check(write(pipe_fd[1], &n, sizeof(n)));
-        sleep(1);
+        sleep(SLEEP_TIME);
 
-        bool flag = true;
-        while (flag)
+        bool flag = false;
+        while (!flag)
         {
             int buffer;
             x = check(read(pipe_fd[0], &buffer, sizeof(int)));
             if (x > 0)
             {
                 if(buffer == value)
-                    flag = false;
+                    flag = true;
                 x = check(write(pipe_fd[1], &flag, sizeof(flag)));
-                //sleep(1);
             }
         }
     }
 
-    void guesser(int pipe_fd[])
+    void guesser(int pipe_fd[], std::pair<bool, int>& result)
     {
-        sleep(2);
+        sleep(SLEEP_TIME);
         int n;
         int r = check(read(pipe_fd[0], &n, sizeof(int)));
         if (r > 0)
         {
             bool flag = false;
-            for (int count = 0; count < INT_MAX && !flag; count++)
+            int i = 0;
+            while (i < INT_MAX && !flag)
             {
                 srandom(time(nullptr));
                 int value = 1 + (int)random() % n;
                 r = check(write(pipe_fd[1], &value, sizeof(value)));
-                sleep(1);
+                sleep(SLEEP_TIME);
 
                 r = check(read(pipe_fd[0], &flag, sizeof(bool)));
                 if (r > 0)
                 {
-                    std::cout << '[' << count + 1 << "]\t" << value << "\t" << (flag ? "true" : "false") << std::endl;
+                    std::cout << '[' << i + 1 << "]\t" << value << "\t" << (flag ? "true" : "false") << std::endl;
                 }
+                i++;
             }
+            result = std::make_pair(flag, i + 1);
         }
-        exit(EXIT_SUCCESS);
     }
 
     void start(const int n)
     {
-        auto start_time = std::chrono::high_resolution_clock::now();
+        std::pair<bool, int> result;
 
         int fd[2];
         check(pipe(fd));
         int p_id = check(fork());
-        if (p_id)
-        {
-            riddler(fd, n);
-            int stat;
-            wait(&stat);
-        }
-        else
-        {
-            guesser(fd);
-        }
-        check(close(fd[0]));
-        check(close(fd[1]));
 
-        auto end_time = std::chrono::high_resolution_clock::now();
-        std::cout   << "Runtime: "
-                    << std::chrono::duration<double, std::milli>(end_time - start_time).count()
-                    << " ms" << std::endl;
+        for(int i = 0; i < 10; i++)
+        {
+            auto start_time = std::chrono::high_resolution_clock::now();
+
+            if (p_id)
+            {
+                std::cout << "GAME [" << i + 1 << "]" << std::endl << std::endl;
+
+                if (i % 2)
+                    riddler(fd, n);
+                else
+                    guesser(fd, result);
+                int stat;
+                wait(&stat);
+
+                auto end_time = std::chrono::high_resolution_clock::now();
+                print_stat(result, std::chrono::duration<double, std::milli>(end_time - start_time).count() / 1000.0);
+            }
+            else
+            {
+                atexit(on_exit);
+                if (i % 2)
+                    guesser(fd, result);
+                else
+                    riddler(fd, n);
+            }
+        }
         exit(EXIT_SUCCESS);
     }
 }
