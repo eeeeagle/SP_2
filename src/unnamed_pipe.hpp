@@ -1,38 +1,12 @@
 #ifndef UNNAMED_PIPE
 #define UNNAMED_PIPE
 
-#include "check.hpp"
-#include <chrono>
-#include <unistd.h>
-#include <wait.h>
-#include <tuple>
+#include "common.hpp"
 
 #define DELAY 10
 
 namespace UP
 {
-    void print_result(const std::pair<bool, int>& result, const double& runtime)
-    {
-        std::cout << "Value was" << (result.first ? " " : "n't ") << "guessed" << std::endl;
-        std::cout << "Number of attempts: " << result.second << std::endl;
-        std::cout << "Game time: " << (runtime / 1000.0) << " ms" << std::endl;
-        std::cout << "__________________________________" << std::endl << std::endl;
-    }
-
-    void print_stat(const std::pair<std::pair<int, int>, double>& stats, const int n)
-    {
-        std::cout << "             Games: " << n << std::endl;
-
-        std::cout << "    Guessed values: " << stats.first.first << " (" << stats.first.first * 100 / n << "%)" << std::endl;
-
-        std::cout << "          Attempts: " << stats.first.second << std::endl;
-        std::cout << "  Average attempts: " << (int)(stats.first.second / n) << std::endl;
-
-        std::cout << " Average game time: " << (stats.second / 1000.0 / n) << " ms" << std::endl;
-
-        std::cout << "__________________________________" << std::endl;
-    }
-
     void riddler(int pipe_fd[], const int n)
     {
         struct timespec ts{};
@@ -43,25 +17,26 @@ namespace UP
         usleep(DELAY);
         std::cout << "Guessed value: " << value << std::endl;
 
-        int x = check(write(pipe_fd[1], &n, sizeof(n)));
+        check(write(pipe_fd[1], &n, sizeof(n)));
         usleep(DELAY);
 
         bool flag = false;
         while (!flag)
         {
             int buffer;
-            x = check(read(pipe_fd[0], &buffer, sizeof(int)));
-            if (x > 0)
+            if (check(read(pipe_fd[0], &buffer, sizeof(int))))
             {
                 if(buffer == value)
                     flag = true;
-                x = check(write(pipe_fd[1], &flag, sizeof(flag)));
+                check(write(pipe_fd[1], &flag, sizeof(flag)));
             }
+            else
+                _exit(EXIT_FAILURE);
         }
         usleep(13);
     }
 
-    void guesser(int pipe_fd[], std::pair<bool, int>& result)
+    std::pair<bool, int> guesser(int pipe_fd[])
     {
         usleep(DELAY);
         int n;
@@ -81,31 +56,26 @@ namespace UP
 
                 if (check(read(pipe_fd[0], &flag, sizeof(bool))))
                     std::cout << '[' << i++ + 1 << "]\t" << value << "\t" << (flag ? "true" : "false") << std::endl;
+                else
+                    _exit(EXIT_FAILURE);
             }
             std::cout << std::endl;
-            result = std::make_pair(flag, i);
+            return std::make_pair(flag, i);
         }
+        _exit(EXIT_FAILURE);
     }
 
-    bool comp_1(const int i)
-    {
-        return (i % 2 == 0);
-    }
+    bool comp_1(const int i) { return (i % 2 == 0); }
+    bool comp_2(const int i) { return !comp_1(i); }
 
-    bool comp_2(const int i)
-    {
-        return !comp_1(i);
-    }
-
-    void shit(const int i, int fd[], const int n, std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int))
+    void player(const int i, int fd[], const int n, std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int))
     {
         auto start_time = std::chrono::high_resolution_clock::now();
         if (cmp(i))
             riddler(fd, n);
         else
         {
-            std::pair<bool, int> result;
-            guesser(fd, result);
+            const std::pair<bool, int> result = guesser(fd);
 
             auto end_time = std::chrono::high_resolution_clock::now();
             print_result(result, std::chrono::duration<double, std::micro>(end_time - start_time).count());
@@ -118,7 +88,7 @@ namespace UP
     }
 
 
-    void start(const int n)
+    void start(const int n, const int count = 10)
     {
         std::pair<std::pair<int, int>, double> stats {{0, 0}, 0.0};
 
@@ -126,14 +96,13 @@ namespace UP
         check(pipe(fd));
         pid_t p_id = check(fork());
 
-        for(int i = 0; i < 10; i++)
+        for(int i = 0; i < count; i++)
         {
             if (p_id)
-                shit(i, fd, n, stats, comp_1);
+                player(i, fd, n, stats, comp_1);
             else
-                shit(i, fd, n, stats, comp_2);
+                player(i, fd, n, stats, comp_2);
         }
-
 
         if(p_id)
         {
@@ -148,7 +117,7 @@ namespace UP
             close(fd[0]);
             close(fd[1]);
 
-            print_stat(stats, n);
+            print_stat(stats, count);
 
             waitpid(p_id, nullptr, 0);
             exit(EXIT_SUCCESS);
