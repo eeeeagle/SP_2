@@ -25,73 +25,88 @@ namespace SIG
 
     void riddler(pid_t p_id, const int n)
     {
+        raise(SIGSTOP);
+
         struct timespec ts{};
         clock_gettime(CLOCK_MONOTONIC, &ts);
         srandom((time_t)ts.tv_nsec);
 
         int value = 1 + (int) random() % n;
-        check(sigqueue(p_id, SIGCONT, sigval{n}));
         sig_handler(SIGCONT, n);
-
-        std::cout << "Guessed value: " << value << std::endl;
+        check(sigqueue(p_id, SIGCONT, sigval{ n }));
+        std::cout << "Guessed value: " << value << '\n';
 
         bool flag = false;
         while (!flag)
         {
-            std::cout << "waiting value from guesser " << std::endl;
-            waitpid(p_id, nullptr, WCONTINUED);
+            std::cout << "waiting value from guesser\n";
+            raise(SIGSTOP);
+
             if(signal_value == value)
                 flag = true;
+
             sig_handler(flag ? SIGUSR1 : SIGUSR2);
-            std::cout << p_id << std::endl;
             check(kill(p_id, (flag ? SIGUSR1 : SIGUSR2)));
         }
-        std::cout << "waiting guesser end" << std::endl;
-        waitpid(p_id, nullptr, WCONTINUED);
+        std::cout << "waiting guesser end\n";
+        raise(SIGSTOP);
     }
 
     std::pair<bool, int> guesser(pid_t p_id)
     {
-        std::cout << "waiting max possible value " << std::endl;
-        waitpid(p_id, nullptr, WCONTINUED);
+        std::cout << "waiting max possible value\n";
+        check(kill(p_id, SIGCONT));
+        raise(SIGSTOP);
         const int n = signal_value;
-        std::cout << "Got max possible value: " << n << std::endl;
+        std::cout << "Got max possible value: " << n << '\n';
+
         sigset_t sig_set;
-        sigfillset(&sig_set);
-        sigdelset(&sig_set, SIGUSR1);
-        sigdelset(&sig_set, SIGUSR2);
+        sigemptyset(&sig_set);
+        sigaddset(&sig_set, SIGUSR1);
+        sigaddset(&sig_set, SIGUSR2);
+
+        struct timespec ts{};
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        srandom((time_t)ts.tv_nsec);
 
         bool flag = false;
         int i = 0;
+        std::vector<bool> was_guessed(n, false);
         while (i < INT_MAX && !flag)
         {
-            struct timespec ts{};
-            clock_gettime(CLOCK_MONOTONIC, &ts);
-            srandom((time_t)ts.tv_nsec);
+            int value;
+            do
+            {
+                value = 1 + (int)random() % n;
+            }
+            while(was_guessed[value - 1]);
+            was_guessed[value - 1] = true;
 
-            int value = 1 + (int) random() % n;
-            check(sigqueue(p_id, SIGCONT, sigval{value}));
             sig_handler(SIGCONT, value);
-            std::cout << "waiting signal from riddler " << std::endl;
+            check(sigqueue(p_id, SIGCONT, sigval{value}));
+            check(kill(p_id, SIGCONT));
+
+            std::cout << "waiting signal from riddler\n";
             sigsuspend(&sig_set);
 
             if (last_signal_id == SIGUSR1)
                 flag = true;
 
-            std::cout << '[' << i++ + 1 << "]\t" << value << '\t' << (flag ? "true" : "false") << std::endl;
+            std::cout << '[' << i++ + 1 << "]\t" << value << '\t' << (flag ? "true\n" : "false\n");
         }
-        std::cout << std::endl;
+        std::cout << '\n';
         check(kill(p_id, SIGCONT));
         return std::make_pair(flag, i);
     }
 
-    void player(const int i, pid_t p_id , const int n, std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int))
+    void player(const int i, pid_t p_id , const int n,
+                std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int))
     {
-        auto start_time = std::chrono::high_resolution_clock::now();
         if (cmp(i))
             riddler(p_id, n);
         else
         {
+            auto start_time = std::chrono::high_resolution_clock::now();
             const std::pair<bool, int> result = guesser(p_id);
 
             auto end_time = std::chrono::high_resolution_clock::now();
@@ -115,7 +130,7 @@ namespace SIG
             if (p_id)
                 player(i, p_id, n, stats, comp_1);
             else
-                player(i, getpid(), n, stats, comp_2);
+                player(i, getppid(), n, stats, comp_2);
         }
 
         if(p_id)

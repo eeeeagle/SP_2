@@ -21,20 +21,20 @@ namespace MQ
         check(sigqueue(p_id, SIGCONT, sigval{n}));
         sig_handler(SIGCONT, n);
 
-        std::cout << "Guessed value: " << value << std::endl;
+        std::cout << "Guessed value: " << value << '\n';
 
         bool flag = false;
         while (!flag)
         {
-            std::cout << "waiting value from guesser " << std::endl;
+            std::cout << "waiting value from guesser " << '\n';
             waitpid(p_id, nullptr, WCONTINUED);
             if(signal_value == value)
                 flag = true;
             sig_handler(flag ? SIGUSR1 : SIGUSR2);
-            std::cout << p_id << std::endl;
+            std::cout << p_id << '\n';
             check(kill(p_id, (flag ? SIGUSR1 : SIGUSR2)));
         }
-        std::cout << "waiting guesser end" << std::endl;
+        std::cout << "waiting guesser end" << '\n';
         waitpid(p_id, nullptr, WCONTINUED);
         */
     }
@@ -42,10 +42,10 @@ namespace MQ
     std::pair<bool, int> guesser(mqd_t mk_d)
     {
         /* TO DO
-        std::cout << "waiting max possible value " << std::endl;
+        std::cout << "waiting max possible value " << '\n';
         waitpid(p_id, nullptr, WCONTINUED);
         const int n = signal_value;
-        std::cout << "Got max possible value: " << n << std::endl;
+        std::cout << "Got max possible value: " << n << '\n';
         sigset_t sig_set;
         sigfillset(&sig_set);
         sigdelset(&sig_set, SIGUSR1);
@@ -63,15 +63,15 @@ namespace MQ
             int value = 1 + (int) random() % n;
             check(sigqueue(p_id, SIGCONT, sigval{value}));
             sig_handler(SIGCONT, value);
-            std::cout << "waiting signal from riddler " << std::endl;
+            std::cout << "waiting signal from riddler " << '\n';
             sigsuspend(&sig_set);
 
             if (last_signal_id == SIGUSR1)
                 flag = true;
 
-            std::cout << '[' << i++ + 1 << "]\t" << value << '\t' << (flag ? "true" : "false") << std::endl;
+            std::cout << '[' << i++ + 1 << "]\t" << value << '\t' << (flag ? "true" : "false") << '\n';
         }
-        std::cout << std::endl;
+        std::cout << '\n';
         check(kill(p_id, SIGCONT));
         */
         return std::make_pair(flag, i);

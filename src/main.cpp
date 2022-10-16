@@ -7,19 +7,19 @@ int main(int argc, char** argv)
 {
     if(argc < 2 || argc > 3)
     {
-        std::cout   << "Use those arguments to launch program:"     << std::endl
-                    << "    [mode]"                                 << std::endl
-                    << "    [value]         (optional)"             << std::endl << std::endl
-                    << "mode"                                       << std::endl
-                    << "    \"Guess the value\" mode:"              << std::endl
-                    << "    [-SIG] Signal"                          << std::endl
-                    << "    [ -UP] Unnamed pipe"                    << std::endl
-                    << "    [ -MQ] Message queue"                   << std::endl << std::endl
-                    << "value"                                      << std::endl
-                    << "    Set maximum value to guess in the game" << std::endl
-                    << "    Range for the value: [2, INT_MAX]"      << std::endl << std::endl
-                    << "EXAMPLE:"                                   << std::endl
-                    << "    .../SP_2 -SIG 1000"                     << std::endl;
+        std::cout   << "Use those arguments to launch program:"     << '\n'
+                    << "    [mode]"                                 << '\n'
+                    << "    [value]         (optional)"             << '\n' << '\n'
+                    << "mode"                                       << '\n'
+                    << "    \"Guess the value\" mode:"              << '\n'
+                    << "    [-SIG] Signal"                          << '\n'
+                    << "    [ -UP] Unnamed pipe"                    << '\n'
+                    << "    [ -MQ] Message queue"                   << '\n' << '\n'
+                    << "value"                                      << '\n'
+                    << "    Set maximum value to guess in the game" << '\n'
+                    << "    Range for the value: [2, INT_MAX]"      << '\n' << '\n'
+                    << "EXAMPLE:"                                   << '\n'
+                    << "    .../SP_2 -SIG 1000"                     << '\n';
         exit(EXIT_FAILURE);
     }
 
@@ -40,8 +40,8 @@ int main(int argc, char** argv)
             }
             catch(std::invalid_argument const& ex)
             {
-                std::cout   << "INVALID TYPE: " << std::string(argv[2]) << std::endl
-                            << "    Value must be integer"              << std::endl;
+                std::cout   << "INVALID TYPE: " << std::string(argv[2]) << '\n'
+                            << "    Value must be integer\n";
                 exit(EXIT_FAILURE);
             }
             catch(std::out_of_range const& ex)
@@ -60,18 +60,18 @@ int main(int argc, char** argv)
     }
     catch(std::invalid_argument const& ex)
     {
-        std::cout   << ex.what()                                    << std::endl << std::endl
-                    << "Use those arguments to launch program:"     << std::endl
-                    << "    [-SIG] Signal"                          << std::endl
-                    << "    [ -UP] Unnamed pipe"                    << std::endl
-                    << "    [ -MQ] Message queue"                   << std::endl << std::endl;
+        std::cout   << ex.what()                                    << '\n' << '\n'
+                    << "Use those arguments to launch program:"     << '\n'
+                    << "    [-SIG] Signal"                          << '\n'
+                    << "    [ -UP] Unnamed pipe"                    << '\n'
+                    << "    [ -MQ] Message queue"                   << '\n' << '\n';
         exit(EXIT_FAILURE);
     }
     catch(std::out_of_range const& ex)
     {
-        std::cout   << ex.what()                                    << std::endl << std::endl
-                    << "Value must be in range:"                    << std::endl
-                    << "    [2, INT_MAX]"                           << std::endl;
+        std::cout   << ex.what()                                    << '\n' << '\n'
+                    << "Value must be in range:"                    << '\n'
+                    << "    [2, INT_MAX]"                           << '\n';
         exit(EXIT_FAILURE);
     }
 

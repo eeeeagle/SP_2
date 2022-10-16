@@ -3,20 +3,18 @@
 
 #include "common.hpp"
 
-#define DELAY 10
+#define DELAY 100
 
 namespace UP
 {
-    void riddler(int pipe_fd[], const int n)
+    void riddler(const int pipe_fd[], const int n)
     {
         struct timespec ts{};
         clock_gettime(CLOCK_MONOTONIC, &ts);
         srandom((time_t)ts.tv_nsec);
 
         int value = 1 + (int) random() % n;
-        usleep(DELAY);
-        std::cout << "Guessed value: " << value << std::endl;
-
+        std::cout << "Guessed value: " << value << '\n';
         check(write(pipe_fd[1], &n, sizeof(n)));
         usleep(DELAY);
 
@@ -29,52 +27,60 @@ namespace UP
                 if(buffer == value)
                     flag = true;
                 check(write(pipe_fd[1], &flag, sizeof(flag)));
+
             }
             else
                 _exit(EXIT_FAILURE);
         }
-        usleep(13);
     }
 
-    std::pair<bool, int> guesser(int pipe_fd[])
+    std::pair<bool, int> guesser(const int pipe_fd[])
     {
-        usleep(DELAY);
+        struct timespec ts{};
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        srandom((time_t)ts.tv_nsec);
+
         int n;
         if (check(read(pipe_fd[0], &n, sizeof(int))))
         {
             bool flag = false;
             int i = 0;
+            std::vector<bool> was_guessed(n, false);
             while (i < INT_MAX && !flag)
             {
-                struct timespec ts{};
-                clock_gettime(CLOCK_MONOTONIC, &ts);
-                srandom((time_t)ts.tv_nsec);
+                int value;
+                do
+                {
+                    value = 1 + (int)random() % n;
+                }
+                while(was_guessed[value - 1]);
+                was_guessed[value - 1] = true;
 
-                int value = 1 + (int)random() % n;
                 check(write(pipe_fd[1], &value, sizeof(value)));
                 usleep(DELAY);
 
                 if (check(read(pipe_fd[0], &flag, sizeof(bool))))
-                    std::cout << '[' << i++ + 1 << "]\t" << value << "\t" << (flag ? "true" : "false") << std::endl;
+                    std::cout << '[' << i++ + 1 << "]\t" << value << "\t" << (flag ? "true\n" : "false\n");
                 else
                     _exit(EXIT_FAILURE);
             }
-            std::cout << std::endl;
+            std::cout << '\n';
             return std::make_pair(flag, i);
         }
         _exit(EXIT_FAILURE);
     }
 
-    bool comp_1(const int i) { return (i % 2 == 0); }
-    bool comp_2(const int i) { return !comp_1(i); }
-
-    void player(const int i, int fd[], const int n, std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int))
+    void player(const int i, const int fd[], const int n,
+                std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int), pid_t p_id)
     {
-        auto start_time = std::chrono::high_resolution_clock::now();
         if (cmp(i))
+        {
             riddler(fd, n);
+            raise(SIGSTOP);
+        }
         else
         {
+            auto start_time = std::chrono::high_resolution_clock::now();
             const std::pair<bool, int> result = guesser(fd);
 
             auto end_time = std::chrono::high_resolution_clock::now();
@@ -84,9 +90,11 @@ namespace UP
                 stats.first.first++;
             stats.first.second += result.second;
             stats.second += std::chrono::duration<double, std::micro>(end_time - start_time).count();
+
+            sleep(1);
+            kill(p_id, SIGCONT);
         }
     }
-
 
     void start(const int n, const int count = 10)
     {
@@ -99,14 +107,14 @@ namespace UP
         for(int i = 0; i < count; i++)
         {
             if (p_id)
-                player(i, fd, n, stats, comp_1);
+                player(i, fd, n, stats, comp_1, p_id);
             else
-                player(i, fd, n, stats, comp_2);
+                player(i, fd, n, stats, comp_2, getppid());
         }
 
         if(p_id)
         {
-            usleep(500);
+            usleep(DELAY);
             std::pair<std::pair<int, int>, double> buffer;
             if(check(read(fd[0], &buffer, sizeof(std::pair<std::pair<int, int>, double>))))
             {
@@ -126,6 +134,7 @@ namespace UP
         {
             check(write(fd[1], &stats, sizeof(std::pair<std::pair<int, int>, double>)));
             usleep(DELAY);
+
             exit(EXIT_SUCCESS);
         }
     }
