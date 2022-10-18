@@ -68,7 +68,7 @@ namespace UP
     }
 
     void player(const int i, const int fd[], const int n,
-                std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int), pid_t p_id)
+                std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int))
     {
         if (cmp(i))
         {
@@ -100,13 +100,15 @@ namespace UP
         check(pipe(fd));
         pid_t p_id = check(fork());
 
+        bool (*cmp)(const int);
+        if (p_id)
+            cmp = comp_1;
+        else
+            cmp = comp_2;
+
         for(int i = 0; i < count; i++)
-        {
-            if (p_id)
-                player(i, fd, n, stats, comp_1, p_id);
-            else
-                player(i, fd, n, stats, comp_2, getppid());
-        }
+            player(i, fd, n, stats, cmp);
+
 
         if(p_id)
         {
