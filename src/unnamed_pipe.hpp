@@ -3,8 +3,6 @@
 
 #include "common.hpp"
 
-#define DELAY 100
-
 namespace UP
 {
     void riddler(const int pipe_fd[], const int n)
@@ -16,7 +14,6 @@ namespace UP
         int value = 1 + (int) random() % n;
         std::cout << "Guessed value: " << value << '\n';
         check(write(pipe_fd[1], &n, sizeof(n)));
-        usleep(DELAY);
 
         bool flag = false;
         while (!flag)
@@ -75,8 +72,8 @@ namespace UP
     {
         if (cmp(i))
         {
+            sleep(DELAY);
             riddler(fd, n);
-            raise(SIGSTOP);
         }
         else
         {
@@ -92,11 +89,10 @@ namespace UP
             stats.second += std::chrono::duration<double, std::micro>(end_time - start_time).count();
 
             sleep(1);
-            kill(p_id, SIGCONT);
         }
     }
 
-    void start(const int n, const int count = 10)
+    void start(const int n, const int count)
     {
         std::pair<std::pair<int, int>, double> stats {{0, 0}, 0.0};
 
@@ -114,7 +110,6 @@ namespace UP
 
         if(p_id)
         {
-            usleep(DELAY);
             std::pair<std::pair<int, int>, double> buffer;
             if(check(read(fd[0], &buffer, sizeof(std::pair<std::pair<int, int>, double>))))
             {
@@ -132,6 +127,8 @@ namespace UP
         }
         else
         {
+            sleep(DELAY);
+
             check(write(fd[1], &stats, sizeof(std::pair<std::pair<int, int>, double>)));
             usleep(DELAY);
 

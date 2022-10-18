@@ -3,11 +3,12 @@
 
 #include "check.hpp"
 #include <iostream>
-//#include <unistd.h>
 #include <wait.h>
 #include <climits>
 #include <chrono>
 #include <vector>
+
+#define DELAY 1
 
 bool comp_1(const int i) { return (i % 2 == 0); }
 bool comp_2(const int i) { return (i % 2 != 0); }
@@ -22,6 +23,7 @@ void print_result(const std::pair<bool, int>& result, const double& runtime)
 
 void print_stat(const std::pair<std::pair<int, int>, double>& stats, const int n)
 {
+    std::cout << "__________________________________" << '\n';
     std::cout << "             Games: " << n << '\n';
     std::cout << "    Guessed values: " << stats.first.first << " (" << stats.first.first * 100 / n << "%)" << '\n';
     std::cout << "          Attempts: " << stats.first.second << '\n';

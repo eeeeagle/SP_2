@@ -96,7 +96,7 @@ namespace MQ
         }
     }
 
-    void start(const int n, const int count = 10)
+    void start(const int n, const int count)
     {
         std::pair<std::pair<int, int>, double> stats {{0, 0}, 0.0};
 
