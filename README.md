@@ -1,5 +1,5 @@
 ## Системное программирование - Лабораторная работа №2 - Вариант №1
 
-![Методичка](https://drive.google.com/file/d/17b0EIkYlSIY2_PNgqsmoRrJeJ9dumCnq/view)
+![Методические указания](https://github.com/eeeeagle/SP_2/files/9845218/Guide.pdf)
 
-Работа выполняется на сложный уровень.
+Работа выполняется...
