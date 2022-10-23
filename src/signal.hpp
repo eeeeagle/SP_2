@@ -75,6 +75,7 @@ namespace SIG
     }
 
     std::pair<bool, int> guesser(pid_t p_id, const bool is_parent)
+    /* Returns as pair the number of attempts and a Boolean value indicating whether the guessed number was guessed */
     {
         struct sigaction    rt_action {},
                             usr1_action{},
@@ -114,6 +115,7 @@ namespace SIG
                 value = 1 + (int)random() % n;
             } while(was_guessed[value - 1]);
             was_guessed[value - 1] = true;
+
             if(exists(p_id, is_parent))
                 check(sigqueue(p_id, SIGALRM, sigval{ value }));
 
@@ -136,12 +138,15 @@ namespace SIG
     {
         if (cmp(i))
         {
-            std::cout << "GAME [" << i + 1 << "]\n";
-            sleep(DELAY);
+            raise(SIGSTOP);
+            std::cout << "GAME [" << i+1 << "]\n";
             riddler(p_id, n);
+            raise(SIGSTOP);
         }
         else
         {
+            std::cout << "__________________________________\n\n";
+            kill(p_id, SIGCONT);
             auto start_time = std::chrono::high_resolution_clock::now();
             const std::pair<bool, int> result = guesser(p_id, is_parent);
 
@@ -152,7 +157,7 @@ namespace SIG
                 stats.first.first++;
             stats.first.second += result.second;
             stats.second += std::chrono::duration<double, std::micro>(end_time - start_time).count();
-            sleep(DELAY);
+            kill(p_id, SIGCONT);
         }
     }
 
@@ -188,29 +193,32 @@ namespace SIG
 
         if(p_id)
         {
-            struct sigaction    rt_action {},
-                                quit_action{};
             sigset_t set;
             sigemptyset(&set);
 
-            rt_action.sa_sigaction = rt_sig_handler;
-            rt_action.sa_flags = SA_SIGINFO;
-            check(sigaction(SIGALRM, &rt_action, nullptr));
-
-            quit_action.sa_handler = sig_handler;
-            check(sigaction(SIGCHLD, &quit_action, nullptr));
-
-
-            sigsuspend(&set);
+            do
+            {
+                sigsuspend(&set);
+            } while(last_signal_id != SIGALRM);
             stats.first.first += signal_value;
 
-            sigsuspend(&set);
+            do
+            {
+                sigsuspend(&set);
+
+            } while(last_signal_id != SIGALRM);
             stats.first.second += signal_value;
 
-            sigsuspend(&set);
+            do
+            {
+                sigsuspend(&set);
+
+            } while(last_signal_id != SIGALRM);
             stats.second += signal_value;
 
+            std::cout << "__________________________________\n\n";
             print_stat(stats, count);
+            std::cout << "__________________________________\n\n";
 
             if (atexit(on_end))
             {
@@ -221,10 +229,9 @@ namespace SIG
         }
         else
         {
-            sleep(DELAY);
             check(sigqueue(getppid(), SIGALRM, sigval{stats.first.first}));
             check(sigqueue(getppid(), SIGALRM, sigval{stats.first.second}));
-            check(sigqueue(getppid(), SIGALRM, sigval{(int)stats.second}));
+            check(sigqueue(getppid(), SIGALRM, sigval{(int)(stats.second)}));
 
             exit(EXIT_SUCCESS);
         }
