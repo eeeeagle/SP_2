@@ -88,7 +88,7 @@ namespace UP
             stats.first.second += result.second;
             stats.second += std::chrono::duration<double, std::micro>(end_time - start_time).count();
 
-            sleep(1);
+            sleep(DELAY);
         }
     }
 

@@ -15,21 +15,18 @@ bool comp_2(const int i) { return (i % 2 != 0); }
 
 void print_result(const std::pair<bool, int>& result, const double& runtime)
 {
-    std::cout << "Value was" << (result.first ? " " : "n't ") << "guessed" << '\n';
+    std::cout << "Value was" << (result.first ? " " : "n't ") << "guessed\n";
     std::cout << "Number of attempts: " << result.second << '\n';
-    std::cout << "Game time: " << (runtime / 1000.0) << " ms" << '\n';
-    std::cout << "__________________________________" << '\n' << '\n';
+    std::cout << "Game time: " << (runtime / 1000.0) << " ms\n";
 }
 
 void print_stat(const std::pair<std::pair<int, int>, double>& stats, const int n)
 {
-    std::cout << "__________________________________" << '\n';
     std::cout << "             Games: " << n << '\n';
     std::cout << "    Guessed values: " << stats.first.first << " (" << stats.first.first * 100 / n << "%)" << '\n';
     std::cout << "          Attempts: " << stats.first.second << '\n';
     std::cout << "  Average attempts: " << (int)(stats.first.second / n) << '\n';
-    std::cout << " Average game time: " << (stats.second / 1000.0 / n) << " ms" << '\n';
-    std::cout << "__________________________________" << '\n';
+    std::cout << " Average game time: " << (stats.second / 1000.0 / n) << " ms\n";
 }
 
 #endif
