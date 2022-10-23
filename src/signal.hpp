@@ -138,14 +138,16 @@ namespace SIG
     {
         if (cmp(i))
         {
+            std::cout << "__________________________________\n\n"; /* через вывод тут и в другой ветке
+ *                                                                    ниже можно понять, кто идёт впереди */
             raise(SIGSTOP);
-            std::cout << "GAME [" << i+1 << "]\n";
             riddler(p_id, n);
             raise(SIGSTOP);
+            usleep(10);
         }
         else
         {
-            std::cout << "__________________________________\n\n";
+            std::cout << "GAME [" << i+1 << "]\n"; /* вот этот вывод имеется ввиду выше */
             kill(p_id, SIGCONT);
             auto start_time = std::chrono::high_resolution_clock::now();
             const std::pair<bool, int> result = guesser(p_id, is_parent);
