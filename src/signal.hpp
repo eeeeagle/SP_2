@@ -143,7 +143,7 @@ namespace SIG
             raise(SIGSTOP);
             riddler(p_id, n);
             raise(SIGSTOP);
-            usleep(10);
+            usleep(100);
         }
         else
         {
