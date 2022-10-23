@@ -138,8 +138,8 @@ namespace SIG
     {
         if (cmp(i))
         {
-            std::cout << "GAME [" << i+1 << "]\n"; /* через вывод тут и в другой ветке
-                                                    * ниже можно понять, кто идёт впереди */
+            std::cout << "__________________________________\n\n"; /* через вывод тут и в другой ветке
+                                                                    * ниже можно понять, кто идёт впереди */
             raise(SIGSTOP);
             riddler(p_id, n);
             raise(SIGSTOP);
@@ -147,7 +147,7 @@ namespace SIG
         }
         else
         {
-            std::cout << "__________________________________\n\n"; /* вот этот вывод имеется ввиду выше */
+            std::cout << "GAME [" << i+1 << "]\n"; /* этот вывод имеется ввиду выше */
 
             kill(p_id, SIGCONT);
             auto start_time = std::chrono::high_resolution_clock::now();
