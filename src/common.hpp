@@ -7,8 +7,12 @@
 #include <climits>
 #include <chrono>
 #include <vector>
+#include <iomanip>
 
 #define DELAY 1
+
+typedef std::chrono::duration<double, std::micro> Micro;
+typedef std::chrono::high_resolution_clock HRC;
 
 bool comp_1(const int i) { return (i % 2 == 0); }
 bool comp_2(const int i) { return (i % 2 != 0); }

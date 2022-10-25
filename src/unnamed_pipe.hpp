@@ -43,6 +43,7 @@ namespace UP
             bool flag = false;
             int i = 0;
             std::vector<bool> was_guessed(n, false);
+            std::cout << std::setw(7) << "ATTEMPT" << std::setw(10) << "VALUE" << std::setw(12) << "FLAG\n";
             while (i < INT_MAX && !flag)
             {
                 int value;
@@ -57,7 +58,7 @@ namespace UP
                 usleep(DELAY);
 
                 if (check(read(pipe_fd[0], &flag, sizeof(bool))))
-                    std::cout << '[' << i++ + 1 << "]\t" << value << "\t" << (flag ? "true\n" : "false\n");
+                    std::cout << std::setw(7) << i++ + 1 << std::setw(10) << value << std::setw(12) << (flag ? "true\n" : "false\n");
                 else
                     _exit(EXIT_FAILURE);
             }
@@ -77,16 +78,16 @@ namespace UP
         }
         else
         {
-            auto start_time = std::chrono::high_resolution_clock::now();
+            auto start_time = HRC::now();
             const std::pair<bool, int> result = guesser(fd);
 
-            auto end_time = std::chrono::high_resolution_clock::now();
-            print_result(result, std::chrono::duration<double, std::micro>(end_time - start_time).count());
+            auto end_time = HRC::now();
+            print_result(result, Micro(end_time - start_time).count());
 
             if(result.first)
                 stats.first.first++;
             stats.first.second += result.second;
-            stats.second += std::chrono::duration<double, std::micro>(end_time - start_time).count();
+            stats.second += Micro(end_time - start_time).count();
 
             sleep(DELAY);
         }
@@ -118,11 +119,11 @@ namespace UP
                 stats.first.first += buffer.first.first;
                 stats.first.second += buffer.first.second;
                 stats.second += buffer.second;
+
+                print_stat(stats, count);
             }
             close(fd[0]);
             close(fd[1]);
-
-            print_stat(stats, count);
 
             waitpid(p_id, nullptr, 0);
             exit(EXIT_SUCCESS);
@@ -130,9 +131,7 @@ namespace UP
         else
         {
             sleep(DELAY);
-
             check(write(fd[1], &stats, sizeof(std::pair<std::pair<int, int>, double>)));
-            usleep(DELAY);
 
             exit(EXIT_SUCCESS);
         }

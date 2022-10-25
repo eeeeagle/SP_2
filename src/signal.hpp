@@ -56,7 +56,8 @@ namespace SIG
         srandom((time_t)ts.tv_nsec);
 
         int value = 1 + (int) random() % n;
-        std::cout << "Guessed value: " << value << '\n';
+        std::cout << "Guessed value: " << value << "\n\n";
+
         check(sigqueue(p_id, SIGALRM, sigval{ n }));
 
         bool flag = false;
@@ -97,7 +98,14 @@ namespace SIG
         quit_action.sa_handler = sig_handler;
         check(sigaction(SIGCHLD, &quit_action, nullptr));
 
-        sigsuspend(&set);
+
+        if(!exists(p_id, is_parent))
+            exit(EXIT_FAILURE);
+
+        do
+        {
+            sigsuspend(&set);
+        } while (last_signal_id != SIGALRM);
         const int n = signal_value;
 
         struct timespec ts{};
@@ -107,6 +115,7 @@ namespace SIG
         bool flag = false;
         int i = 0;
         std::vector<bool> was_guessed(n, false);
+        std::cout << std::setw(7) << "ATTEMPT" << std::setw(10) << "VALUE" << std::setw(12) << "FLAG\n";
         while (i < INT_MAX && !flag)
         {
             int value;
@@ -116,9 +125,10 @@ namespace SIG
             } while(was_guessed[value - 1]);
             was_guessed[value - 1] = true;
 
-            if(exists(p_id, is_parent))
-                check(sigqueue(p_id, SIGALRM, sigval{ value }));
+            if(!exists(p_id, is_parent))
+                exit(EXIT_FAILURE);
 
+            check(sigqueue(p_id, SIGALRM, sigval{ value }));
             do
             {
                 sigsuspend(&set);
@@ -127,7 +137,7 @@ namespace SIG
             if (last_signal_id == SIGUSR1)
                 flag = true;
 
-            std::cout << '[' << i++ + 1 << "]\t" << value << '\t' << (flag ? "true\n" : "false\n");
+            std::cout << std::setw(7) << i++ + 1 << std::setw(10) << value << std::setw(12) << (flag ? "true\n" : "false\n");
         }
         std::cout << '\n';
         return std::make_pair(flag, i);
@@ -139,26 +149,38 @@ namespace SIG
         if (cmp(i))
         {
             raise(SIGSTOP);
+
             std::cout << "GAME [" << i+1 << "]\n";
             riddler(p_id, n);
+
             raise(SIGSTOP);
         }
         else
         {
             std::cout << "__________________________________\n\n";
             kill(p_id, SIGCONT);
-            auto start_time = std::chrono::high_resolution_clock::now();
-            const std::pair<bool, int> result = guesser(p_id, is_parent);
 
-            auto end_time = std::chrono::high_resolution_clock::now();
+            auto start_time = HRC::now();
+            const std::pair<bool, int> result = guesser(p_id, is_parent);
+            auto end_time = HRC::now();
+
             print_result(result, std::chrono::duration<double, std::micro>(end_time - start_time).count());
 
             if(result.first)
                 stats.first.first++;
             stats.first.second += result.second;
-            stats.second += std::chrono::duration<double, std::micro>(end_time - start_time).count();
+            stats.second += Micro(end_time - start_time).count();
+
             kill(p_id, SIGCONT);
         }
+    }
+
+    void player_left()
+    {
+        int stat;
+        wait(&stat);
+        if (last_signal_id == SIGCHLD)
+            exit(EXIT_SUCCESS);
     }
 
     void on_end()
@@ -187,14 +209,28 @@ namespace SIG
             cmp = comp_2;
         }
 
+        if (atexit(player_left))
+        {
+            fprintf(stderr, "Failed to register function 1");
+            _exit(EXIT_FAILURE);
+        }
+
         std::pair<std::pair<int, int>, double> stats {{0, 0}, 0.0};
         for(int i = 0; i < count; i++)
             player(i, p_id ? p_id : getppid(), is_parent, n, stats, cmp);
 
         if(p_id)
         {
+            struct sigaction rt_action {};
             sigset_t set;
             sigemptyset(&set);
+
+            rt_action.sa_sigaction = rt_sig_handler;
+            rt_action.sa_flags = SA_SIGINFO;
+            check(sigaction(SIGALRM, &rt_action, nullptr));
+
+            if(!exists(p_id, is_parent))
+                exit(EXIT_FAILURE);
 
             do
             {
@@ -202,12 +238,18 @@ namespace SIG
             } while(last_signal_id != SIGALRM);
             stats.first.first += signal_value;
 
+            if(!exists(p_id, is_parent))
+                exit(EXIT_FAILURE);
+
             do
             {
                 sigsuspend(&set);
 
             } while(last_signal_id != SIGALRM);
             stats.first.second += signal_value;
+
+            if(!exists(p_id, is_parent))
+                exit(EXIT_FAILURE);
 
             do
             {
