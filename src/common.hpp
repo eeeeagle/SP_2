@@ -8,11 +8,18 @@
 #include <chrono>
 #include <vector>
 #include <iomanip>
-
-#define DELAY 1
+#include <random>
+#include <algorithm>
 
 typedef std::chrono::duration<double, std::micro> Micro;
 typedef std::chrono::high_resolution_clock HRC;
+
+struct OverallStat
+{
+    int     guessed;
+    int     attempts;
+    double  total_time;
+};
 
 bool comp_1(const int i) { return (i % 2 == 0); }
 bool comp_2(const int i) { return (i % 2 != 0); }
@@ -24,13 +31,12 @@ void print_result(const std::pair<bool, int>& result, const double& runtime)
     std::cout << "Game time: " << (runtime / 1000.0) << " ms\n";
 }
 
-void print_stat(const std::pair<std::pair<int, int>, double>& stats, const int n)
+void print_stat(const OverallStat& stats, const int game_count)
 {
-    std::cout << "             Games: " << n << '\n';
-    std::cout << "    Guessed values: " << stats.first.first << " (" << stats.first.first * 100 / n << "%)" << '\n';
-    std::cout << "          Attempts: " << stats.first.second << '\n';
-    std::cout << "  Average attempts: " << (int)(stats.first.second / n) << '\n';
-    std::cout << " Average game time: " << (stats.second / 1000.0 / n) << " ms\n";
+    std::cout << "             Games: " << game_count << '\n';
+    std::cout << "    Guessed values: " << stats.guessed << " (" << stats.guessed * 100 / game_count << "%)" << '\n';
+    std::cout << "          Attempts: " << stats.attempts << '\n';
+    std::cout << "  Average attempts: " << stats.attempts / game_count << '\n';
+    std::cout << " Average game time: " << (stats.total_time / 1000.0 / game_count) << " ms\n";
 }
-
 #endif
