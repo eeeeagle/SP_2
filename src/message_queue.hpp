@@ -6,141 +6,114 @@
 #include <sys/stat.h>
 #include <mqueue.h>
 
-/* TO DO */
-
 namespace MQ
 {
-    void riddler(mqd_t mk_d, const int n)
+    void player_riddler(mqd_t mk_d, const int max_range)
     {
-        struct timespec ts{};
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        srandom((time_t)ts.tv_nsec);
+        static std::mt19937 gen(HRC::now().time_since_epoch().count());
+        std::uniform_int_distribution<> uid(1, max_range);
 
-        int value = 1 + (int) random() % n;
-        /* TO DO
-        check(sigqueue(p_id, SIGCONT, sigval{n}));
-        sig_handler(SIGCONT, n);
-
-        std::cout << "Guessed value: " << value << '\n';
-
-        bool flag = false;
-        while (!flag)
-        {
-            std::cout << "waiting value from guesser " << '\n';
-            waitpid(p_id, nullptr, WCONTINUED);
-            if(signal_value == value)
-                flag = true;
-            sig_handler(flag ? SIGUSR1 : SIGUSR2);
-            std::cout << p_id << '\n';
-            check(kill(p_id, (flag ? SIGUSR1 : SIGUSR2)));
-        }
-        std::cout << "waiting guesser end" << '\n';
-        waitpid(p_id, nullptr, WCONTINUED);
+        const int guessed_value = uid(gen);
+        std::cout << "Guessed value: " << guessed_value << "\n\n";
+        /*
+         * TO DO
+         *
+         * SEND MAX RANGE TO GUESSER
+         * GET ANSWER FROM GUESSER
+         * SEND ANSWER TO GUESSER
+         *
         */
     }
 
-    std::pair<bool, int> guesser(mqd_t mk_d)
+    std::pair<bool, int> player_guesser(mqd_t mq_d)
     {
-        /* TO DO
-        std::cout << "waiting max possible value " << '\n';
-        waitpid(p_id, nullptr, WCONTINUED);
-        const int n = signal_value;
-        std::cout << "Got max possible value: " << n << '\n';
-        sigset_t sig_set;
-        sigfillset(&sig_set);
-        sigdelset(&sig_set, SIGUSR1);
-        sigdelset(&sig_set, SIGUSR2);
-        */
-        bool flag = false;
-        int i = 0;
         /*
-        while (i < INT_MAX && !flag)
+         * TO DO
+         *
+         * GET MAX RANGE FROM RIDDLER
+         * SEND VALUE TO RIDDLER
+         * GET ANSWER FROM RIDDLER
+         *
+         */
+        int max_range;
+        std::vector<int> attempt = {};
+        for (int i = 1; i <= max_range; attempt.push_back(i++));
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::shuffle(attempt.begin(), attempt.end(), mt);
+
+        std::cout   << std::setw(7) << "ATTEMPT"
+                    << std::setw(10) << "VALUE"
+                    << std::setw(12) << "FLAG\n";
+
+        int try_count = 0;
+        bool is_guessed = false;
+        while (try_count < INT_MAX && !is_guessed)
         {
-            struct timespec ts{};
-            clock_gettime(CLOCK_MONOTONIC, &ts);
-            srandom((time_t)ts.tv_nsec);
+            int value = attempt.back();
+            attempt.pop_back();
 
-            int value = 1 + (int) random() % n;
-            check(sigqueue(p_id, SIGCONT, sigval{value}));
-            sig_handler(SIGCONT, value);
-            std::cout << "waiting signal from riddler " << '\n';
-            sigsuspend(&sig_set);
-
-            if (last_signal_id == SIGUSR1)
-                flag = true;
-
-            std::cout << '[' << i++ + 1 << "]\t" << value << '\t' << (flag ? "true" : "false") << '\n';
+            if (value + 1 != 0)
+                std::cout   << std::setw(7) << try_count++ + 1
+                            << std::setw(10) << value
+                            << std::setw(12) << (is_guessed ? "true\n" : "false\n");
+            else
+                _exit(EXIT_FAILURE);
         }
         std::cout << '\n';
-        check(kill(p_id, SIGCONT));
-        */
-        return std::make_pair(flag, i);
+        return std::make_pair(is_guessed, try_count);
     }
 
-    void player(const int i, mqd_t mq_d , const int n, std::pair<std::pair<int, int>, double>& stats, bool (*cmp)(const int))
+    void role_select(const int game_count, mqd_t mq_d , const int max_range, OverallStat& stats, bool (*cmp)(const int))
     {
-        auto start_time = std::chrono::high_resolution_clock::now();
-        if (cmp(i))
-            riddler(mq_d, n);
+
+        if (cmp(game_count))
+            player_riddler(mq_d, max_range);
         else
         {
-            const std::pair<bool, int> result = guesser(mq_d);
-
-            auto end_time = std::chrono::high_resolution_clock::now();
-            print_result(result, std::chrono::duration<double, std::micro>(end_time - start_time).count());
+            auto start_time = HRC::now();
+            const std::pair<bool, int> result = player_guesser(mq_d);
+            auto end_time = HRC::now();
+            print_result(result, Micro(end_time - start_time).count());
 
             if(result.first)
-                stats.first.first++;
-            stats.first.second += result.second;
-            stats.second += std::chrono::duration<double, std::micro>(end_time - start_time).count();
+                stats.guessed++;
+            stats.attempts += result.second;
+            stats.total_time += Micro(end_time - start_time).count();
         }
     }
 
-    void start(const int n, const int count)
+    void start(const int max_range, const int max_game_count)
     {
-        std::pair<std::pair<int, int>, double> stats {{0, 0}, 0.0};
+        OverallStat stats {0, 0, 0.0};
 
         pid_t p_id = check(fork());
-        mqd_t mq_d = check(mq_open("/mq", O_WRONLY)); //open for write
-        for(int i = 0; i < count; i++)
-        {
-            if (p_id)
-                player(i, mq_d, n, stats, comp_1);
-            else
-                player(i, mq_d, n, stats, comp_2);
-        }
+        mqd_t mq_d = check(mq_open("/mq", O_WRONLY));
+
+        bool (*cmp)(const int) = p_id ? comp_1 : comp_2;
+        for(int game_count = 0; game_count < max_game_count; game_count++)
+            role_select(game_count, mq_d, max_range, stats, cmp);
 
         if(p_id)
         {
-            int* buf = new int[8 * 1024 / sizeof(int)];
-            int r;
-            do
-            {
-                r = check(mq_receive(mq_d, (char*)buf, 8 * 1024, nullptr));
-                //printf("Child Got %d from the queue\n", buf[0]);
-            } while (r > 0 && *buf != -1);
-            delete[] buf;
+            /*
+             *  TO DO
+             *
+             *  GET STATS FROM CHILD
+             */
 
-            print_stat(stats, count);
+            print_stat(stats, max_game_count);
 
             wait(nullptr);
-            mq_unlink("/mq"); //remove the queue from the filesystem
+            mq_unlink("/mq");
             exit(EXIT_SUCCESS);
         }
         else
         {
-            /* TO DO
-            check(sigqueue(p_id, SIGCONT, sigval{stats.first.first}));
-            sig_handler(SIGCONT, stats.first.first);
-            waitpid(getpid(), nullptr, WCONTINUED);
-
-            check(sigqueue(p_id, SIGCONT, sigval{stats.first.second}));
-            sig_handler(SIGCONT, stats.first.second);
-            waitpid(getpid(), nullptr, WCONTINUED);
-
-            check(sigqueue(p_id, SIGCONT, sigval{(int)stats.second}));
-            sig_handler(SIGCONT, (int)stats.second);
-            waitpid(getpid(), nullptr, WCONTINUED);
+            /*
+             * TO DO
+             *
+             * SEND STATS TO PARENT
             */
             exit(EXIT_SUCCESS);
         }
