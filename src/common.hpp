@@ -24,12 +24,6 @@ struct OverallStat
 bool comp_1(const int i) { return (i % 2 == 0); }
 bool comp_2(const int i) { return (i % 2 != 0); }
 
-bool is_exists(const pid_t p_id)
-{
-    int st;
-    return (waitpid(p_id, &st, WNOHANG) <= 0);
-}
-
 void print_result(const std::pair<bool, int>& result, const double& runtime)
 {
     std::cout << "Value was" << (result.first ? " " : "n't ") << "guessed\n";

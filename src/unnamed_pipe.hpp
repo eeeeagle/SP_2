@@ -5,6 +5,12 @@
 
 namespace UP
 {
+    bool is_exists(const pid_t p_id)
+    {
+        int st;
+        return (waitpid(p_id, &st, WNOHANG) <= 0);
+    }
+
     void player_riddler(const int fd_a[], const int fd_b[], const int max_range)
     {
         static std::mt19937 gen(HRC::now().time_since_epoch().count());

@@ -186,7 +186,7 @@ namespace SIG
 
         if (atexit(player_left))
         {
-            fprintf(stderr, "Failed to register role_select left function");
+            fprintf(stderr, "Failed to register atexit function");
             exit(EXIT_FAILURE);
         }
 
