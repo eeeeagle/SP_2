@@ -18,28 +18,28 @@ namespace MQ
 
         check(mq_send(mq_a, (char *) &max_range, sizeof(max_range), 0));
 
+        int* buffer = new int[8 * 1024 / sizeof(int)];
         int is_guessed = 0;
         while (is_guessed == 0)
         {
-            int* buffer = new int[8 * 1024 / sizeof(int)];
-            buffer[0] = -1;
             if (check(mq_receive(mq_b, (char *) buffer, 8 * 1024, nullptr)))
             {
-                if (buffer[0] == guessed_value)
-                {
+                if (*buffer == guessed_value)
                     is_guessed = 1;
-                    delete[] buffer;
-                }
 
                 check(mq_send(mq_a, (char*) &is_guessed, sizeof(is_guessed), 0));
             } else
                 _exit(EXIT_FAILURE);
         }
+        delete[] buffer;
+
     }
 
     std::pair<bool, int> player_guesser(const mqd_t mq_a, const mqd_t mq_b, const pid_t p_id)
     {
         int* max_range = new int[8 * 1024 / sizeof(int)];
+        int* is_guessed = new int[8 * 1024 / sizeof(int)];
+
         if (check(mq_receive(mq_a, (char *) max_range, 8 * 1024, nullptr)))
         {
             std::vector<int> attempt = {};
@@ -53,7 +53,6 @@ namespace MQ
                       << std::setw(12) << "FLAG\n";
 
             int try_count = 0;
-            int* is_guessed = new int[8 * 1024 / sizeof(int)];
             is_guessed[0] = 0;
             while (try_count < INT_MAX && is_guessed[0] == 0)
             {

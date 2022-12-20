@@ -78,7 +78,7 @@ namespace UP
     {
         if (cmp(game_count))
         {
-            usleep(500);
+            sleep(1);
             std::cout << "__________________________________\n\n";
             std::cout << "GAME [" << game_count + 1 << "]\n";
             player_riddler(fd_a, fd_b, n);
