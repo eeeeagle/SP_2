@@ -1,6 +1,5 @@
 #include "signal.hpp"
 #include "unnamed_pipe.hpp"
-#include "message_queue.hpp"
 #include <getopt.h>
 #include <cstring>
 
@@ -34,7 +33,6 @@ void help()
                 << "    \"Guess the value\" mode:\n"
                 << "    [--sig] Signal\n"
                 << "    [ --up] Unnamed pipe\n"
-                << "    [ --mq] Message queue\n\n"
                 << "value\n"
                 << "    Set maximum value to guess in the game\n"
                 << "    Range for the value: [2, INT_MAX]\n\n"
@@ -59,7 +57,6 @@ int main(int argc, char** argv)
 
     const option options[] = {{  "sig",       no_argument, nullptr, 's'},
                               {   "up",       no_argument, nullptr, 'p'},
-                              {   "mq",       no_argument, nullptr, 'q'},
                               {"range", required_argument, nullptr, 'n'},
                               {"count", required_argument, nullptr, 'c'},
                               {nullptr,       no_argument, nullptr,  0 }};
@@ -75,9 +72,6 @@ int main(int argc, char** argv)
                 break;
             case 'p':
                 mode = 'p';
-                break;
-            case 'q':
-                mode = 'q';
                 break;
             case 'n':
                 range = get_int(optarg);
@@ -122,9 +116,6 @@ int main(int argc, char** argv)
             break;
         case 'p':
             UP::start(range, count);
-            break;
-        case 'q':
-            MQ::start(range, count);
             break;
         default:
             std::cout   << "Use one of those arguments to launch game:\n"
